@@ -18,7 +18,49 @@ env:
   LOCAL_IMAGE: local/intranet-newdeal
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      dockerhub_ready: ${{ steps.check.outputs.dockerhub_ready }}
+      smtp_ready: ${{ steps.check.outputs.smtp_ready }}
+      runner_ready: ${{ steps.check.outputs.runner_ready }}
+    steps:
+      - name: Verifier les prerequis externes
+        id: check
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          RUNNER_PROD_READY: ${{ vars.RUNNER_PROD_READY }}
+        run: |
+          if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+            echo "dockerhub_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dockerhub_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$SMTP_HOST" ] && [ -n "$SMTP_PORT" ] && [ -n "$SMTP_USERNAME" ] && [ -n "$SMTP_PASSWORD" ] && [ -n "$MAIL_FROM" ] && [ -n "$MAIL_TO" ]; then
+            echo "smtp_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "smtp_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          case "$RUNNER_PROD_READY" in
+            true|TRUE|1|yes|YES)
+              echo "runner_ready=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "runner_ready=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
   security_gate:
+    needs: preflight
     runs-on: ubuntu-latest
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
@@ -37,7 +79,7 @@ jobs:
         run: docker build --file Dockerfile --tag "${LOCAL_IMAGE}:${GITHUB_SHA}" .
 
       - name: Scanner l'image avec Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: ${{ env.LOCAL_IMAGE }}:${{ github.sha }}
           format: table
@@ -54,12 +96,14 @@ jobs:
           retention-days: 7
 
       - name: Authentification Docker Hub
+        if: needs.preflight.outputs.dockerhub_ready == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Pousser l'image validée
+        if: needs.preflight.outputs.dockerhub_ready == 'true'
         run: |
           SHORT_SHA="${{ steps.meta.outputs.short_sha }}"
           docker tag "${LOCAL_IMAGE}:${GITHUB_SHA}" "${IMAGE_NAME}:prod"
@@ -68,7 +112,10 @@ jobs:
           docker push "${IMAGE_NAME}:prod-${SHORT_SHA}"
 
   deploy_prod:
-    needs: security_gate
+    if: needs.preflight.outputs.runner_ready == 'true' && needs.preflight.outputs.dockerhub_ready == 'true'
+    needs:
+      - preflight
+      - security_gate
     runs-on:
       - self-hosted
       - runner_prod
@@ -88,11 +135,17 @@ jobs:
   notify:
     if: always()
     needs:
+      - preflight
       - security_gate
       - deploy_prod
     runs-on: ubuntu-latest
     steps:
+      - name: Noter l'absence de configuration SMTP
+        if: needs.preflight.outputs.smtp_ready != 'true'
+        run: echo "SMTP non configure, notification email ignoree."
+
       - name: Envoyer le récapitulatif par email
+        if: needs.preflight.outputs.smtp_ready == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_HOST }}

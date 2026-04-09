@@ -30,6 +30,12 @@ Le site représente:
 
 Le template Forty a été récupéré depuis la source officielle HTML5 UP. Aucun fallback n'a été nécessaire.
 
+Le dépôt GitHub a déjà été créé :
+
+- `https://github.com/Djamal85/intranet-newdeal`
+
+Le collaborateur `moisawade` a également été invité avec un accès en écriture.
+
 ## Structure du dépôt
 
 ```text
@@ -98,6 +104,7 @@ Comportement:
 - scan Gitleaks du dépôt
 - push vers Docker Hub sur les tags `dev`, `dev-<sha>` et `latest-dev`
 - email de synthèse exécuté avec `if: always()`
+- si Docker Hub ou SMTP ne sont pas encore configurés, les jobs dépendants sont ignorés proprement au lieu de faire échouer la pipeline
 
 ## CD sur `prod`
 
@@ -117,6 +124,7 @@ Comportement:
 - déploiement sur un runner self-hosted étiqueté `runner_prod`
 - exposition du service sur le port `80`
 - email de synthèse exécuté avec `if: always()`
+- si Docker Hub, SMTP ou le runner de production ne sont pas encore prêts, les jobs dépendants sont ignorés proprement
 
 ## Secrets GitHub à créer
 
@@ -132,6 +140,12 @@ Les workflows attendent les secrets suivants:
 | `SMTP_PASSWORD` | Mot de passe ou token SMTP |
 | `MAIL_FROM` | Adresse expéditrice |
 | `MAIL_TO` | Adresse destinataire |
+
+Variable GitHub optionnelle :
+
+| Variable | Usage |
+| --- | --- |
+| `RUNNER_PROD_READY` | Mettre `true` quand le runner self-hosted `runner_prod` est effectivement configuré |
 
 Exemples de destinataire:
 

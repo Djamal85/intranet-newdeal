@@ -16,6 +16,36 @@ env:
   LOCAL_IMAGE: local/intranet-newdeal
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      dockerhub_ready: ${{ steps.check.outputs.dockerhub_ready }}
+      smtp_ready: ${{ steps.check.outputs.smtp_ready }}
+    steps:
+      - name: Verifier les prerequis externes
+        id: check
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: |
+          if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+            echo "dockerhub_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dockerhub_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$SMTP_HOST" ] && [ -n "$SMTP_PORT" ] && [ -n "$SMTP_USERNAME" ] && [ -n "$SMTP_PASSWORD" ] && [ -n "$MAIL_FROM" ] && [ -n "$MAIL_TO" ]; then
+            echo "smtp_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "smtp_ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +75,7 @@ jobs:
           name: intranet-newdeal-image
 
       - name: Scanner l'image avec Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           input: intranet-newdeal-image.tar
           format: table
@@ -74,8 +104,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   push_dockerhub:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && needs.preflight.outputs.dockerhub_ready == 'true'
     needs:
+      - preflight
       - scan_vulnerabilities
       - scan_secrets
     runs-on: ubuntu-latest
@@ -107,13 +138,19 @@ jobs:
   notify:
     if: always()
     needs:
+      - preflight
       - build
       - scan_vulnerabilities
       - scan_secrets
       - push_dockerhub
     runs-on: ubuntu-latest
     steps:
+      - name: Noter l'absence de configuration SMTP
+        if: needs.preflight.outputs.smtp_ready != 'true'
+        run: echo "SMTP non configure, notification email ignoree."
+
       - name: Envoyer le récapitulatif par email
+        if: needs.preflight.outputs.smtp_ready == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: ${{ secrets.SMTP_HOST }}
