@@ -1,8 +1,8 @@
-# Guide d'exécution des pipelines
+# Guide d'execution des pipelines
 
 ## Pipeline CI sur `dev`
 
-### Déclenchement
+### Declenchement
 
 ```bash
 git switch dev
@@ -11,23 +11,29 @@ git commit -m "feat: update intranet content"
 git push origin dev
 ```
 
-### Ce qu'il faut vérifier
+### Ce qu'il faut verifier
 
 1. Le job `build` construit l'image Docker.
-2. Le job `scan_vulnerabilities` exécute Trivy.
-3. Le job `scan_secrets` exécute Gitleaks.
+2. Le job `scan_vulnerabilities` execute Trivy.
+3. Le job `scan_secrets` execute Gitleaks.
 4. Le job `push_dockerhub` pousse les tags `dev`.
-5. Le job `notify` envoie l'email de synthèse.
+5. Le job `notify` envoie l'email de synthese si SMTP est configure.
 
-### Captures recommandées
+### Etat actuel
+
+- la pipeline `ci-dev` est deja validee
+- le push Docker Hub est deja operationnel
+- la notification email reste conditionnee aux secrets SMTP
+
+### Captures recommandees
 
 - liste des jobs du workflow `ci-dev`
-- détail du job `push_dockerhub`
-- dépôt Docker Hub avec les tags `dev`
+- detail du job `push_dockerhub`
+- depot Docker Hub avec les tags `dev`
 
 ## Pipeline CD sur `prod`
 
-### Déclenchement
+### Declenchement
 
 ```bash
 git switch prod
@@ -35,33 +41,41 @@ git merge dev
 git push origin prod
 ```
 
-Ou via déclenchement manuel depuis l'onglet `Actions` grâce à `workflow_dispatch`.
+Ou via declenchement manuel depuis l'onglet `Actions` grace a `workflow_dispatch`.
 
-### Ce qu'il faut vérifier
+### Ce qu'il faut verifier
 
-1. Le job `security_gate` reconstruit et scanne l'image.
-2. Le scan Trivy bloque en cas de vulnérabilité `CRITICAL`.
-3. L'image `prod` est poussée sur Docker Hub.
-4. Le job `deploy_prod` s'exécute sur le runner `runner_prod`.
-5. Le conteneur `intranet-newdeal` est relancé sur le port `80`.
-6. Le job `notify` envoie le récapitulatif final.
+1. Le job `preflight` valide les prerequis.
+2. Le job `security_gate` reconstruit et scanne l'image.
+3. Le scan Trivy bloque en cas de vulnerabilite `CRITICAL`.
+4. L'image `prod` est poussee sur Docker Hub.
+5. Le job `deploy_prod` s'execute sur le runner `runner_prod`.
+6. Le conteneur `intranet-newdeal` est relance sur le port `80`.
+7. Le job `notify` envoie le recapitulatif final si SMTP est configure.
 
-Note:
+### Etat actuel
 
-- si `RUNNER_PROD_READY` est encore a `false`, le job `deploy_prod` sera ignore proprement
+- `security_gate` est deja operationnel
+- `deploy_prod` est pret dans le workflow mais reste volontairement ignore
+- ce comportement est normal tant que `RUNNER_PROD_READY=false`
+- cette variable ne doit etre activee qu'apres validation de Docker sur la machine du runner
+
+### Notes d'exploitation
+
 - sur un runner Windows, le deploiement s'appuie sur `scripts/deploy_prod.ps1`
 - sur un runner Linux, le deploiement s'appuie sur `scripts/deploy_prod.sh`
+- si `RUNNER_PROD_READY` reste a `false`, le job `deploy_prod` sera ignore proprement au lieu de passer en echec
 
-### Captures recommandées
+### Captures recommandees
 
 - liste des jobs du workflow `cd-prod`
-- détail du job `security_gate`
-- détail du job `deploy_prod`
-- navigateur montrant le site déployé
+- detail du job `security_gate`
+- detail du job `deploy_prod`
+- navigateur montrant le site deployee
 
-## Démonstration locale
+## Demonstration locale
 
-Avant la soutenance, tester localement:
+Avant la soutenance, tester localement :
 
 ```bash
 docker build -t intranet-newdeal:local .

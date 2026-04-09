@@ -1,78 +1,90 @@
 # intranet-newdeal
 
-Projet d'examen DevOps: mise en place d'un pipeline CI/CD pour un intranet gouvernemental inspiré du New Deal Technologique du Sénégal.
+Projet d'examen DevOps : mise en place d'un pipeline CI/CD pour un intranet gouvernemental inspire du New Deal Technologique du Senegal.
 
-## Présentation
+## Presentation
 
-Ce dépôt propose un site statique institutionnel en français, servi par Nginx dans un conteneur Docker, avec:
+Ce depot contient un site statique institutionnel en francais, servi par Nginx dans un conteneur Docker, avec :
 
-- une intégration personnalisée du template Forty de HTML5 UP
-- une pipeline CI ciblant la branche `dev`
-- une pipeline CD ciblant la branche `prod`
-- un scan de vulnérabilités avec Trivy
+- une integration personnalisee du template Forty de HTML5 UP
+- une pipeline CI sur la branche `dev`
+- une pipeline CD sur la branche `prod`
+- un scan de vulnerabilites avec Trivy
 - un scan de secrets avec Gitleaks
-- un blocage explicite en cas de vulnérabilité `CRITICAL`
-- une notification email de synthèse en fin de workflow
+- un blocage en cas de vulnerabilite `CRITICAL`
+- une notification email en fin de workflow
 - une documentation de soutenance et un rapport `.docx`
 
-Le site représente:
+Le site represente :
 
-`Intranet New Deal – Ministère de la Communication, des Télécommunications et du Numérique`
+`Intranet New Deal - Ministere de la Communication, des Telecommunications et du Numerique`
 
 ## Contexte et choix techniques
 
-- Site statique: HTML, CSS, JS issus du thème Forty et personnalisés pour un usage intranet institutionnel.
-- Serveur web: `nginx:alpine3.23-slim` pour l'image finale.
-- Image de référence documentée: `nginx:alpine3.23` conformément au sujet.
-- Sécurité CI/CD: Trivy pour l'image Docker, Gitleaks pour les secrets.
-- Publication d'images: Docker Hub `djallesjr04/intranet-newdeal`.
-- Déploiement production: runner GitHub Actions self-hosted labellisé `runner_prod`.
-- Runner actuellement configuré: machine Windows avec GitHub Actions Runner et Docker Desktop.
+- Front-end : HTML, CSS et JS issus du theme Forty, personnalises pour un intranet institutionnel senegalais.
+- Serveur web : `nginx:alpine3.23-slim` pour l'image finale.
+- Image de reference documentee : `nginx:alpine3.23`.
+- Securite CI/CD : Trivy pour l'image Docker, Gitleaks pour les secrets.
+- Publication des images : Docker Hub `djallesjr04/intranet-newdeal`.
+- Deploiement production : runner GitHub Actions self-hosted labellise `runner_prod`.
 
-Le template Forty a été récupéré depuis la source officielle HTML5 UP. Aucun fallback n'a été nécessaire.
+Le template Forty a ete recupere depuis la source officielle HTML5 UP. Aucun fallback n'a ete necessaire.
 
-Le dépôt GitHub a déjà été créé :
+## Etat actuel au 2026-04-09
 
-- `https://github.com/Djamal85/intranet-newdeal`
+Les elements suivants sont deja en place :
 
-Le collaborateur `moisawade` a également été invité avec un accès en écriture.
+- depot GitHub cree : `https://github.com/Djamal85/intranet-newdeal`
+- branches `dev` et `prod` poussees
+- collaborateur `moisawade` invite avec un acces en ecriture
+- depot Docker Hub cree : `djallesjr04/intranet-newdeal`
+- runner self-hosted `runner_prod` configure et visible `online` dans GitHub
+- workflow `ci-dev` valide avec build, scans et push Docker Hub
+- workflow `cd-prod` valide avec `security_gate` operationnel
+- job `deploy_prod` pret pour Windows et Linux
 
-## Structure du dépôt
+Les points encore manuels sont :
+
+- l'envoi reel d'email, qui depend des secrets SMTP
+- le redemarrage complet de Docker Desktop sur la machine du runner
+- l'activation finale de `RUNNER_PROD_READY=true` quand Docker repondra correctement
+
+## Structure du depot
 
 ```text
 intranet-newdeal/
-├── .github/workflows/
-├── docs/
-├── nginx/
-├── report/
-├── screenshots/
-├── scripts/
-├── site/
-├── .dockerignore
-├── .gitignore
-├── Dockerfile
-└── README.md
+|-- .github/workflows/
+|-- docs/
+|-- nginx/
+|-- report/
+|-- screenshots/
+|-- scripts/
+|-- site/
+|-- .dockerignore
+|-- .gitignore
+|-- Dockerfile
+`-- README.md
 ```
 
 ## Branches Git
 
-- `dev`: branche d'intégration continue
-- `prod`: branche de déploiement continu
+- `dev` : integration continue
+- `prod` : deploiement continu
 
-Le flux attendu est le suivant:
+Flux attendu :
 
-1. Développer et pousser sur `dev`
-2. Laisser la pipeline CI construire, scanner et pousser l'image `dev`
-3. Promouvoir le code validé vers `prod`
-4. Déclencher la pipeline CD pour scanner, pousser l'image `prod` et déployer sur le runner self-hosted
+1. developper et pousser sur `dev`
+2. laisser la CI construire, scanner et publier l'image `dev`
+3. promouvoir le code valide vers `prod`
+4. laisser la CD scanner, publier l'image `prod` et deployer sur le runner self-hosted
 
-## Exécution locale sans Docker
+## Execution locale sans Docker
 
-Le site étant statique, il peut être ouvert directement via:
+Le site etant statique, il peut etre ouvert directement via :
 
 - `site/index.html`
 
-Pour une démonstration plus réaliste, il est recommandé d'utiliser Docker.
+Pour une demonstration plus realiste, il est recommande d'utiliser Docker.
 
 ## Build et run Docker
 
@@ -81,15 +93,15 @@ docker build -t intranet-newdeal:local .
 docker run --rm -p 80:80 --name intranet-newdeal intranet-newdeal:local
 ```
 
-Ensuite ouvrir:
+Puis ouvrir :
 
 - `http://localhost/`
 
 ## CI sur `dev`
 
-Workflow: `.github/workflows/ci-dev.yml`
+Workflow : `.github/workflows/ci-dev.yml`
 
-Jobs chaînés avec `needs`:
+Jobs chaines avec `needs` :
 
 1. `build`
 2. `scan_vulnerabilities`
@@ -97,110 +109,121 @@ Jobs chaînés avec `needs`:
 4. `push_dockerhub`
 5. `notify`
 
-Comportement:
+Comportement :
 
 - construction de l'image Docker
 - export de l'image sous forme d'artefact
-- scan Trivy avec échec si une vulnérabilité `CRITICAL` est détectée
-- scan Gitleaks du dépôt
+- scan Trivy avec echec si une vulnerabilite `CRITICAL` est detectee
+- scan Gitleaks du depot
 - push vers Docker Hub sur les tags `dev`, `dev-<sha>` et `latest-dev`
-- email de synthèse exécuté avec `if: always()`
-- si Docker Hub ou SMTP ne sont pas encore configurés, les jobs dépendants sont ignorés proprement au lieu de faire échouer la pipeline
+- email de synthese execute avec `if: always()`
+- si Docker Hub ou SMTP ne sont pas encore configures, les jobs dependants sont ignores proprement
 
 ## CD sur `prod`
 
-Workflow: `.github/workflows/cd-prod.yml`
+Workflow : `.github/workflows/cd-prod.yml`
 
-Jobs:
+Jobs :
 
-1. `security_gate`
-2. `deploy_prod`
-3. `notify`
+1. `preflight`
+2. `security_gate`
+3. `deploy_prod`
+4. `notify`
 
-Comportement:
+Comportement :
 
-- reconstruction de l'image à partir de la branche `prod`
-- scan Trivy bloquant sur sévérité `CRITICAL`
+- reconstruction de l'image a partir de la branche `prod`
+- scan Trivy bloquant sur severite `CRITICAL`
 - push des tags `prod` et `prod-<sha>` sur Docker Hub
-- déploiement sur un runner self-hosted étiqueté `runner_prod`
+- deploiement sur un runner self-hosted etiquette `runner_prod`
+- support du script PowerShell sur Windows et du script Bash sur Linux
 - exposition du service sur le port `80`
-- email de synthèse exécuté avec `if: always()`
-- si Docker Hub, SMTP ou le runner de production ne sont pas encore prêts, les jobs dépendants sont ignorés proprement
+- email de synthese execute avec `if: always()`
 
-## Secrets GitHub à créer
+Etat actuel :
 
-Les workflows attendent les secrets suivants:
+- `security_gate` est operationnel
+- `deploy_prod` reste volontairement ignore tant que `RUNNER_PROD_READY` reste a `false`
+- cette variable restera a `false` tant que `docker version` ne repondra pas correctement sur la machine du runner
+
+## Secrets GitHub a creer
+
+Les workflows attendent les secrets suivants :
 
 | Secret | Usage |
 | --- | --- |
 | `DOCKERHUB_USERNAME` | Nom d'utilisateur Docker Hub |
 | `DOCKERHUB_TOKEN` | Access token Docker Hub |
-| `SMTP_HOST` | Hôte SMTP |
+| `SMTP_HOST` | Hote SMTP |
 | `SMTP_PORT` | Port SMTP |
 | `SMTP_USERNAME` | Compte SMTP |
 | `SMTP_PASSWORD` | Mot de passe ou token SMTP |
-| `MAIL_FROM` | Adresse expéditrice |
+| `MAIL_FROM` | Adresse expediteur |
 | `MAIL_TO` | Adresse destinataire |
 
-Variable GitHub optionnelle :
+Variable GitHub :
 
 | Variable | Usage |
 | --- | --- |
-| `RUNNER_PROD_READY` | Mettre `true` quand le runner self-hosted `runner_prod` est effectivement configuré et que Docker fonctionne dessus |
+| `RUNNER_PROD_READY` | Mettre `true` uniquement quand le runner `runner_prod` est en ligne et que Docker fonctionne dessus |
 
-Exemples de destinataire:
+Exemple de destinataire :
 
-- adresse de test personnelle
 - `moussawade@groupeisi.com`
 
 ## Configuration Docker Hub
 
-Créer le dépôt:
+Repository utilise :
 
 - `djallesjr04/intranet-newdeal`
 
-Puis créer un access token Docker Hub et le renseigner dans `DOCKERHUB_TOKEN`.
+Le secret `DOCKERHUB_TOKEN` doit contenir un access token Docker Hub valide.
 
 ## Configuration du runner `runner_prod`
 
-Le runner doit:
+Le runner doit :
 
-- être self-hosted
-- disposer de Docker fonctionnel
+- etre self-hosted
 - porter le label `runner_prod`
+- disposer de Docker fonctionnel
 - pouvoir publier le port `80`
 
-Voir `docs/runner-prod-setup.md` pour les commandes détaillées.
+Voir `docs/runner-prod-setup.md` pour les details et le statut actuel de la machine Windows utilisee.
 
-## Procédure de déploiement attendue
+## Procedure de deploiement attendue
 
-1. Vérifier que l'image `dev` a bien été poussée après la CI.
-2. Fusionner ou pousser le code validé dans `prod`.
-3. Vérifier que le workflow `cd-prod` pousse l'image `prod`.
-4. Vérifier que le runner `runner_prod` exécute le script de déploiement adapté à son OS:
+1. verifier que l'image `dev` a bien ete poussee apres la CI
+2. fusionner ou pousser le code valide dans `prod`
+3. verifier que le workflow `cd-prod` pousse l'image `prod`
+4. verifier que le runner `runner_prod` execute le script adapte a son OS :
    - `scripts/deploy_prod.ps1` sur Windows
    - `scripts/deploy_prod.sh` sur Linux
-5. Contrôler l'accès HTTP sur le serveur de démonstration.
+5. controler l'acces HTTP sur le serveur de demonstration
 
-## Captures à prévoir pour le rendu
+## Captures a prevoir pour le rendu
 
-Prévoir au minimum:
+Prevoir au minimum :
 
-- capture du workflow `ci-dev` en succès
-- capture du workflow `cd-prod` en succès
-- capture du dépôt GitHub avec les branches `dev` et `prod`
-- capture du dépôt Docker Hub avec les tags `dev` et `prod`
+- capture du workflow `ci-dev` en succes
+- capture du workflow `cd-prod` en succes
+- capture du depot GitHub avec les branches `dev` et `prod`
+- capture du depot Docker Hub avec les tags `dev` et `prod`
 - capture du site rendu dans le navigateur
 
-Le dossier `screenshots/` est préparé pour accueillir ces éléments.
+Le dossier `screenshots/` est prepare pour accueillir ces elements.
 
 ## Limites et points manuels
 
-Dans ce workspace local:
+Dans ce workspace local :
 
-- le dépôt GitHub a bien été créé sur `https://github.com/Djamal85/intranet-newdeal`
-- l'invitation du collaborateur a été lancée via GitHub
-- l'envoi réel d'email dépend encore des secrets SMTP
-- le déploiement réel sur le runner self-hosted dépend encore d'un moteur Docker opérationnel sur la machine cible
+- le depot GitHub a deja ete cree
+- l'invitation du collaborateur a deja ete lancee
+- l'envoi reel d'email depend encore des secrets SMTP
+- le runner `runner_prod` est en ligne mais Docker Desktop n'est pas encore valide
+- la finalisation du deploiement prod depend d'une intervention ulterieure sur WSL et Docker
 
-Toutes les étapes restantes sont documentées dans le dossier `docs/`.
+Voir aussi :
+
+- `docs/current-status.md`
+- `docs/runner-prod-setup.md`
+- `docs/troubleshooting.md`

@@ -4,61 +4,92 @@
 
 Configurer un runner GitHub Actions self-hosted dedie au deploiement de la branche `prod`.
 
-## Cible retenue pour ce projet
+## Statut actuel
 
-Le runner actuellement configure pour le depot `Djamal85/intranet-newdeal` est une machine Windows avec:
+Au 2026-04-09, le runner `runner_prod` est deja :
 
-- GitHub Actions Runner installe localement
-- label personnalise `runner_prod`
-- Docker Desktop comme moteur Docker
-- WSL2 requis pour les conteneurs Linux
+- enregistre dans le depot `Djamal85/intranet-newdeal`
+- visible `online` dans GitHub
+- etiquete `runner_prod`
+- compatible avec le workflow `cd-prod.yml`
 
-Le workflow `cd-prod.yml` a ete adapte pour accepter:
+Le workflow de production a ete adapte pour accepter :
 
 - `scripts/deploy_prod.ps1` sur Windows
 - `scripts/deploy_prod.sh` sur Linux
 
-## Creation du runner Windows
+## Machine cible retenue
 
-Dans le depot GitHub:
+La machine actuellement preparee pour ce projet est une machine Windows avec :
 
-1. Aller dans `Settings`
-2. Ouvrir `Actions`
-3. Ouvrir `Runners`
-4. Cliquer sur `New self-hosted runner`
-5. Choisir `Windows`
+- GitHub Actions Runner installe localement
+- Docker Desktop
+- WSL2 pour les conteneurs Linux
 
-## Commandes type sur la machine Windows
+## Ce qui a deja ete fait
 
-Creer un dossier dedie, par exemple:
+- installation du runner GitHub Actions
+- enregistrement du runner avec le label `runner_prod`
+- verification du statut `online`
+- adaptation du workflow `cd-prod.yml` au cas Windows
+- ajout du script `scripts/deploy_prod.ps1`
+- installation du noyau WSL2 classique via `wsl --update`
+
+## Point bloquant actuel
+
+Le noyau WSL2 classique est bien present, mais Docker Desktop considere encore WSL comme trop ancien sur cette machine.
+
+Indices observes :
+
+- `wsl --status` fonctionne
+- `wsl --version` n'est pas reconnu
+- `docker version` repond encore `Docker Desktop is unable to start`
+
+Conclusion :
+
+- le runner est pret
+- le workflow est pret
+- Docker Desktop n'est pas encore valide
+- `RUNNER_PROD_READY` doit rester a `false` tant que `docker version` ne repond pas
+
+## Action manuelle a faire plus tard
+
+Installer la version moderne de WSL depuis la release stable Microsoft WSL.
+
+Reference retenue :
+
+- fichier : `wsl.2.6.3.0.x64.msi`
+- source : release officielle `microsoft/WSL`
+- taille attendue : `247123968` octets
+- SHA256 attendu : `562c79aba6ce9b6e9170f069d31e3717f10d76dd8bfbee39b07eae0ca4a02ca0`
+
+Tant que ce MSI n'est pas telecharge completement et installe, il ne faut pas l'utiliser.
+
+## Procedure de reprise plus tard
+
+1. Telecharger completement `wsl.2.6.3.0.x64.msi`.
+2. Verifier la taille et le hash.
+3. Lancer l'installation en administrateur.
+4. Redemarrer Docker Desktop.
+5. Verifier :
 
 ```powershell
-New-Item -ItemType Directory -Force C:\Users\user\actions-runner-runner_prod
-Set-Location C:\Users\user\actions-runner-runner_prod
+wsl --version
+docker version
+docker pull djallesjr04/intranet-newdeal:prod
 ```
 
-Telecharger l'archive du runner puis decompresser:
+6. Activer ensuite la variable GitHub :
 
-```powershell
-Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/v2.333.1/actions-runner-win-x64-2.333.1.zip -OutFile actions-runner-win-x64-2.333.1.zip
-Expand-Archive .\actions-runner-win-x64-2.333.1.zip -DestinationPath .
+```bash
+gh variable set RUNNER_PROD_READY --body true --repo Djamal85/intranet-newdeal
 ```
 
-Configurer le runner:
+7. Relancer le workflow `cd-prod`.
 
-```powershell
-.\config.cmd --url https://github.com/Djamal85/intranet-newdeal --token <TOKEN> --name runner_prod --labels runner_prod --unattended --replace --work _work
-```
+## Rappel du ciblage GitHub Actions
 
-Lancer le runner en interactif:
-
-```powershell
-.\run.cmd
-```
-
-## Verification cote GitHub
-
-Le workflow attend exactement:
+Le workflow attend exactement :
 
 ```yaml
 runs-on:
@@ -66,45 +97,13 @@ runs-on:
   - runner_prod
 ```
 
-Le runner doit donc etre visible `online` dans GitHub avec le label `runner_prod`.
-
-## Docker sur le runner Windows
-
-Le runner doit pouvoir executer:
-
-```powershell
-docker version
-docker pull djallesjr04/intranet-newdeal:prod
-```
-
-Si `docker version` repond `Docker Desktop is unable to start`, verifier les points suivants:
-
-- Docker Desktop est ouvert
-- le moteur Linux Docker Desktop est demarre
-- WSL2 est installe
-- le noyau WSL2 est a jour
-
-Commande utile:
-
-```powershell
-wsl --status
-wsl --update
-```
-
-Sur cette machine, `wsl --update` a detecte qu'une elevation administrateur etait necessaire. Tant que cette mise a jour n'est pas faite, Docker Desktop reste bloque en phase `starting`.
-
-## Variable GitHub a activer ensuite
-
-Quand le runner est en ligne et que Docker repond correctement, activer la variable GitHub suivante:
-
-```bash
-gh variable set RUNNER_PROD_READY --body true --repo Djamal85/intranet-newdeal
-```
+Le runner doit donc rester visible `online` dans GitHub avec le label `runner_prod`.
 
 ## Verifications avant soutenance
 
 - le runner est `online` dans GitHub
+- le job `security_gate` passe sur `prod`
 - `docker version` fonctionne sur la machine du runner
-- le port `80` est libre ou correctement redirige
 - la machine peut telecharger l'image Docker Hub
-- la variable `RUNNER_PROD_READY` est a `true`
+- `RUNNER_PROD_READY` est passe a `true`
+- le job `deploy_prod` ne reste plus en `skipped`
