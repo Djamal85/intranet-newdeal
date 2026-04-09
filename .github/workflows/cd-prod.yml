@@ -132,7 +132,7 @@ jobs:
         shell: bash
         run: |
           chmod +x scripts/deploy_prod.sh
-          ./scripts/deploy_prod.sh "${{ needs.security_gate.outputs.image_ref }}"
+          ./scripts/deploy_prod.sh "${IMAGE_NAME}:prod"
 
       - name: Déployer le conteneur sur Windows
         if: runner.os == 'Windows'
@@ -140,9 +140,9 @@ jobs:
           CONTAINER_NAME: intranet-newdeal
           HOST_PORT: 80
           CONTAINER_PORT: 80
-        shell: pwsh
+        shell: powershell
         run: |
-          ./scripts/deploy_prod.ps1 -ImageRef "${{ needs.security_gate.outputs.image_ref }}"
+          ./scripts/deploy_prod.ps1 -ImageRef "${env:IMAGE_NAME}:prod"
 
   notify:
     if: always()
@@ -176,6 +176,6 @@ jobs:
 
             Security gate: ${{ needs.security_gate.result }}
             Déploiement: ${{ needs.deploy_prod.result }}
-            Image déployée: ${{ needs.security_gate.outputs.image_ref }}
+            Image déployée: ${{ env.IMAGE_NAME }}:prod
 
             Exécution: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
