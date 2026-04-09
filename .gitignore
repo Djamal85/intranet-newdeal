@@ -1,0 +1,11 @@
+forty-src/
+forty.zip
+subject-extract.txt
+Examen_DevOps_Intranet_NewDeal-2026.pdf
+~$*.docx
+*.log
+*.tar
+.env
+.env.*
+.DS_Store
+Thumbs.db

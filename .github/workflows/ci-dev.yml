@@ -1,0 +1,139 @@
+name: ci-dev
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: djallesjr04/intranet-newdeal
+  LOCAL_IMAGE: local/intranet-newdeal
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Construire l'image Docker
+        run: docker build --file Dockerfile --tag "${LOCAL_IMAGE}:${GITHUB_SHA}" .
+
+      - name: Exporter l'image pour les jobs suivants
+        run: docker save "${LOCAL_IMAGE}:${GITHUB_SHA}" --output intranet-newdeal-image.tar
+
+      - name: Publier l'artefact image
+        uses: actions/upload-artifact@v4
+        with:
+          name: intranet-newdeal-image
+          path: intranet-newdeal-image.tar
+          retention-days: 7
+
+  scan_vulnerabilities:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer l'image exportée
+        uses: actions/download-artifact@v4
+        with:
+          name: intranet-newdeal-image
+
+      - name: Scanner l'image avec Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          input: intranet-newdeal-image.tar
+          format: table
+          output: trivy-report.txt
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Publier le rapport Trivy
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report-dev
+          path: trivy-report.txt
+          retention-days: 7
+
+  scan_secrets:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Scanner le dépôt avec Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  push_dockerhub:
+    if: github.event_name == 'push'
+    needs:
+      - scan_vulnerabilities
+      - scan_secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer l'image exportée
+        uses: actions/download-artifact@v4
+        with:
+          name: intranet-newdeal-image
+
+      - name: Charger l'image locale
+        run: docker load --input intranet-newdeal-image.tar
+
+      - name: Authentification Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tagger et pousser l'image
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          docker tag "${LOCAL_IMAGE}:${GITHUB_SHA}" "${IMAGE_NAME}:dev"
+          docker tag "${LOCAL_IMAGE}:${GITHUB_SHA}" "${IMAGE_NAME}:dev-${SHORT_SHA}"
+          docker tag "${LOCAL_IMAGE}:${GITHUB_SHA}" "${IMAGE_NAME}:latest-dev"
+          docker push "${IMAGE_NAME}:dev"
+          docker push "${IMAGE_NAME}:dev-${SHORT_SHA}"
+          docker push "${IMAGE_NAME}:latest-dev"
+
+  notify:
+    if: always()
+    needs:
+      - build
+      - scan_vulnerabilities
+      - scan_secrets
+      - push_dockerhub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Envoyer le récapitulatif par email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CI dev] intranet-newdeal - synthèse d'exécution"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM }}
+          body: |
+            Synthèse du workflow CI sur la branche dev
+
+            Dépôt: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Acteur: ${{ github.actor }}
+            Événement: ${{ github.event_name }}
+
+            Build: ${{ needs.build.result }}
+            Scan vulnérabilités: ${{ needs.scan_vulnerabilities.result }}
+            Scan secrets: ${{ needs.scan_secrets.result }}
+            Push Docker Hub: ${{ needs.push_dockerhub.result }}
+
+            Exécution: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

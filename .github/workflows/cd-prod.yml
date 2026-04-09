@@ -1,0 +1,116 @@
+name: cd-prod
+
+on:
+  push:
+    branches:
+      - prod
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: intranet-newdeal-prod
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: djallesjr04/intranet-newdeal
+  LOCAL_IMAGE: local/intranet-newdeal
+
+jobs:
+  security_gate:
+    runs-on: ubuntu-latest
+    outputs:
+      image_ref: ${{ steps.meta.outputs.image_ref }}
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Préparer les métadonnées d'image
+        id: meta
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "image_ref=${IMAGE_NAME}:prod-${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Construire l'image de production
+        run: docker build --file Dockerfile --tag "${LOCAL_IMAGE}:${GITHUB_SHA}" .
+
+      - name: Scanner l'image avec Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.LOCAL_IMAGE }}:${{ github.sha }}
+          format: table
+          output: trivy-prod-report.txt
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+
+      - name: Publier le rapport Trivy
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report-prod
+          path: trivy-prod-report.txt
+          retention-days: 7
+
+      - name: Authentification Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Pousser l'image validée
+        run: |
+          SHORT_SHA="${{ steps.meta.outputs.short_sha }}"
+          docker tag "${LOCAL_IMAGE}:${GITHUB_SHA}" "${IMAGE_NAME}:prod"
+          docker tag "${LOCAL_IMAGE}:${GITHUB_SHA}" "${IMAGE_NAME}:prod-${SHORT_SHA}"
+          docker push "${IMAGE_NAME}:prod"
+          docker push "${IMAGE_NAME}:prod-${SHORT_SHA}"
+
+  deploy_prod:
+    needs: security_gate
+    runs-on:
+      - self-hosted
+      - runner_prod
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Déployer le conteneur sur le runner de production
+        env:
+          CONTAINER_NAME: intranet-newdeal
+          HOST_PORT: 80
+          CONTAINER_PORT: 80
+        run: |
+          chmod +x scripts/deploy_prod.sh
+          ./scripts/deploy_prod.sh "${{ needs.security_gate.outputs.image_ref }}"
+
+  notify:
+    if: always()
+    needs:
+      - security_gate
+      - deploy_prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: Envoyer le récapitulatif par email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[CD prod] intranet-newdeal - synthèse de déploiement"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM }}
+          body: |
+            Synthèse du workflow CD sur la branche prod
+
+            Dépôt: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Acteur: ${{ github.actor }}
+
+            Security gate: ${{ needs.security_gate.result }}
+            Déploiement: ${{ needs.deploy_prod.result }}
+            Image déployée: ${{ needs.security_gate.outputs.image_ref }}
+
+            Exécution: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

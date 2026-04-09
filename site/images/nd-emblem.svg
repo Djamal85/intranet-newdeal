@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Emblème Intranet New Deal</title>
+  <desc id="desc">Symbole circulaire reprenant les couleurs nationales du Sénégal et une étoile centrale.</desc>
+  <defs>
+    <linearGradient id="ring" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#0b2239"/>
+      <stop offset="100%" stop-color="#142f4d"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="60" fill="url(#ring)" stroke="#f7d116" stroke-width="4"/>
+  <rect x="22" y="30" width="28" height="68" rx="6" fill="#00853f"/>
+  <rect x="50" y="30" width="28" height="68" rx="6" fill="#f7d116"/>
+  <rect x="78" y="30" width="28" height="68" rx="6" fill="#ce1126"/>
+  <polygon
+    points="64,41 69.6,54.1 84,55.4 73.1,64.9 76.4,78.8 64,71.3 51.6,78.8 54.9,64.9 44,55.4 58.4,54.1"
+    fill="#00853f"
+    stroke="#0b2239"
+    stroke-width="2"
+  />
+</svg>
