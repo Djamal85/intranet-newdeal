@@ -11,6 +11,9 @@ Actions:
 - vérifier que Docker Desktop est lancé
 - exécuter `docker version`
 - redémarrer Docker Desktop si nécessaire
+- exécuter `wsl --status`
+- si le noyau WSL2 est absent, lancer `wsl --update` dans un terminal administrateur
+- relancer Docker Desktop après mise à jour de WSL
 
 ## Le push Docker Hub échoue
 
@@ -35,6 +38,8 @@ Actions:
 - vérifier que le runner est `online`
 - vérifier le label `runner_prod`
 - vérifier que le dépôt autorise les runners self-hosted
+- vérifier que `RUNNER_PROD_READY` est à `true`
+- vérifier que `docker version` fonctionne sur la machine du runner
 
 ## Le port 80 est déjà utilisé sur le serveur
 

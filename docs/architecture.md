@@ -77,7 +77,8 @@ Sur `prod`, la CD:
 - reconstruit l'image depuis la branche de production
 - applique un `security gate` Trivy bloquant sur `CRITICAL`
 - pousse l'image `prod` sur Docker Hub
-- déploie l'image validée via `scripts/deploy_prod.sh`
+- déploie l'image validée via un script adapté à l'OS du runner:
+  `scripts/deploy_prod.ps1` sur Windows ou `scripts/deploy_prod.sh` sur Linux
 - remplace le conteneur précédent
 
 ## Stratégie de tags Docker

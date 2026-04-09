@@ -2,76 +2,63 @@
 
 ## Objectif
 
-Configurer un runner GitHub Actions self-hosted dédié au déploiement de la branche `prod`.
+Configurer un runner GitHub Actions self-hosted dedie au deploiement de la branche `prod`.
 
-## Hypothèse cible
+## Cible retenue pour ce projet
 
-Machine Linux ou VM Ubuntu avec:
+Le runner actuellement configure pour le depot `Djamal85/intranet-newdeal` est une machine Windows avec:
 
-- Docker installé
-- accès réseau sortant vers GitHub et Docker Hub
-- droits suffisants pour exposer le port `80`
+- GitHub Actions Runner installe localement
+- label personnalise `runner_prod`
+- Docker Desktop comme moteur Docker
+- WSL2 requis pour les conteneurs Linux
 
-## Création du runner
+Le workflow `cd-prod.yml` a ete adapte pour accepter:
 
-Dans le dépôt GitHub:
+- `scripts/deploy_prod.ps1` sur Windows
+- `scripts/deploy_prod.sh` sur Linux
+
+## Creation du runner Windows
+
+Dans le depot GitHub:
 
 1. Aller dans `Settings`
 2. Ouvrir `Actions`
 3. Ouvrir `Runners`
 4. Cliquer sur `New self-hosted runner`
-5. Choisir Linux x64
+5. Choisir `Windows`
 
-## Commandes types sur la machine
+## Commandes type sur la machine Windows
 
-Créer un dossier dédié:
+Creer un dossier dedie, par exemple:
 
-```bash
-mkdir -p ~/actions-runner && cd ~/actions-runner
+```powershell
+New-Item -ItemType Directory -Force C:\Users\user\actions-runner-runner_prod
+Set-Location C:\Users\user\actions-runner-runner_prod
 ```
 
-Télécharger l'archive fournie par GitHub puis exécuter:
+Telecharger l'archive du runner puis decompresser:
 
-```bash
-tar xzf actions-runner-linux-x64-<version>.tar.gz
-./config.sh --url https://github.com/Djamal85/intranet-newdeal --token <TOKEN> --name runner_prod --labels runner_prod
+```powershell
+Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/v2.333.1/actions-runner-win-x64-2.333.1.zip -OutFile actions-runner-win-x64-2.333.1.zip
+Expand-Archive .\actions-runner-win-x64-2.333.1.zip -DestinationPath .
 ```
 
-## Lancer le runner
+Configurer le runner:
 
-Pour un test interactif:
-
-```bash
-./run.sh
+```powershell
+.\config.cmd --url https://github.com/Djamal85/intranet-newdeal --token <TOKEN> --name runner_prod --labels runner_prod --unattended --replace --work _work
 ```
 
-Pour l'installation en service:
+Lancer le runner en interactif:
 
-```bash
-sudo ./svc.sh install
-sudo ./svc.sh start
-sudo ./svc.sh status
+```powershell
+.\run.cmd
 ```
 
-## Docker sur le runner
+## Verification cote GitHub
 
-Le runner doit pouvoir exécuter:
-
-```bash
-docker ps
-docker pull djallesjr04/intranet-newdeal:prod
-```
-
-Si nécessaire:
-
-```bash
-sudo usermod -aG docker $USER
-newgrp docker
-```
-
-## Validation du label
-
-Le workflow `cd-prod.yml` attend exactement:
+Le workflow attend exactement:
 
 ```yaml
 runs-on:
@@ -79,11 +66,45 @@ runs-on:
   - runner_prod
 ```
 
-Le runner doit donc exposer le label `runner_prod`.
+Le runner doit donc etre visible `online` dans GitHub avec le label `runner_prod`.
 
-## Vérifications avant soutenance
+## Docker sur le runner Windows
 
-- le runner est `Idle` dans GitHub
-- Docker fonctionne sans sudo dans le contexte du runner
-- le port `80` est libre ou correctement redirigé
-- la machine peut télécharger l'image Docker Hub
+Le runner doit pouvoir executer:
+
+```powershell
+docker version
+docker pull djallesjr04/intranet-newdeal:prod
+```
+
+Si `docker version` repond `Docker Desktop is unable to start`, verifier les points suivants:
+
+- Docker Desktop est ouvert
+- le moteur Linux Docker Desktop est demarre
+- WSL2 est installe
+- le noyau WSL2 est a jour
+
+Commande utile:
+
+```powershell
+wsl --status
+wsl --update
+```
+
+Sur cette machine, `wsl --update` a detecte qu'une elevation administrateur etait necessaire. Tant que cette mise a jour n'est pas faite, Docker Desktop reste bloque en phase `starting`.
+
+## Variable GitHub a activer ensuite
+
+Quand le runner est en ligne et que Docker repond correctement, activer la variable GitHub suivante:
+
+```bash
+gh variable set RUNNER_PROD_READY --body true --repo Djamal85/intranet-newdeal
+```
+
+## Verifications avant soutenance
+
+- le runner est `online` dans GitHub
+- `docker version` fonctionne sur la machine du runner
+- le port `80` est libre ou correctement redirige
+- la machine peut telecharger l'image Docker Hub
+- la variable `RUNNER_PROD_READY` est a `true`

@@ -123,14 +123,26 @@ jobs:
       - name: Checkout du dépôt
         uses: actions/checkout@v4
 
-      - name: Déployer le conteneur sur le runner de production
+      - name: Déployer le conteneur sur Linux
+        if: runner.os != 'Windows'
         env:
           CONTAINER_NAME: intranet-newdeal
           HOST_PORT: 80
           CONTAINER_PORT: 80
+        shell: bash
         run: |
           chmod +x scripts/deploy_prod.sh
           ./scripts/deploy_prod.sh "${{ needs.security_gate.outputs.image_ref }}"
+
+      - name: Déployer le conteneur sur Windows
+        if: runner.os == 'Windows'
+        env:
+          CONTAINER_NAME: intranet-newdeal
+          HOST_PORT: 80
+          CONTAINER_PORT: 80
+        shell: pwsh
+        run: |
+          ./scripts/deploy_prod.ps1 -ImageRef "${{ needs.security_gate.outputs.image_ref }}"
 
   notify:
     if: always()

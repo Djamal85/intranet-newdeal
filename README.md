@@ -27,6 +27,7 @@ Le site représente:
 - Sécurité CI/CD: Trivy pour l'image Docker, Gitleaks pour les secrets.
 - Publication d'images: Docker Hub `djallesjr04/intranet-newdeal`.
 - Déploiement production: runner GitHub Actions self-hosted labellisé `runner_prod`.
+- Runner actuellement configuré: machine Windows avec GitHub Actions Runner et Docker Desktop.
 
 Le template Forty a été récupéré depuis la source officielle HTML5 UP. Aucun fallback n'a été nécessaire.
 
@@ -145,7 +146,7 @@ Variable GitHub optionnelle :
 
 | Variable | Usage |
 | --- | --- |
-| `RUNNER_PROD_READY` | Mettre `true` quand le runner self-hosted `runner_prod` est effectivement configuré |
+| `RUNNER_PROD_READY` | Mettre `true` quand le runner self-hosted `runner_prod` est effectivement configuré et que Docker fonctionne dessus |
 
 Exemples de destinataire:
 
@@ -176,7 +177,9 @@ Voir `docs/runner-prod-setup.md` pour les commandes détaillées.
 1. Vérifier que l'image `dev` a bien été poussée après la CI.
 2. Fusionner ou pousser le code validé dans `prod`.
 3. Vérifier que le workflow `cd-prod` pousse l'image `prod`.
-4. Vérifier que le runner `runner_prod` exécute `scripts/deploy_prod.sh`.
+4. Vérifier que le runner `runner_prod` exécute le script de déploiement adapté à son OS:
+   - `scripts/deploy_prod.ps1` sur Windows
+   - `scripts/deploy_prod.sh` sur Linux
 5. Contrôler l'accès HTTP sur le serveur de démonstration.
 
 ## Captures à prévoir pour le rendu
@@ -195,9 +198,9 @@ Le dossier `screenshots/` est préparé pour accueillir ces éléments.
 
 Dans ce workspace local:
 
-- la création réelle du dépôt GitHub n'a pas été effectuée automatiquement
-- l'ajout du collaborateur par email reste une étape manuelle côté GitHub
-- l'envoi réel d'email dépend des secrets SMTP
-- le déploiement réel sur runner self-hosted dépend d'une machine cible configurée
+- le dépôt GitHub a bien été créé sur `https://github.com/Djamal85/intranet-newdeal`
+- l'invitation du collaborateur a été lancée via GitHub
+- l'envoi réel d'email dépend encore des secrets SMTP
+- le déploiement réel sur le runner self-hosted dépend encore d'un moteur Docker opérationnel sur la machine cible
 
 Toutes les étapes restantes sont documentées dans le dossier `docs/`.

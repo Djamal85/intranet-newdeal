@@ -46,6 +46,12 @@ Ou via déclenchement manuel depuis l'onglet `Actions` grâce à `workflow_dispa
 5. Le conteneur `intranet-newdeal` est relancé sur le port `80`.
 6. Le job `notify` envoie le récapitulatif final.
 
+Note:
+
+- si `RUNNER_PROD_READY` est encore a `false`, le job `deploy_prod` sera ignore proprement
+- sur un runner Windows, le deploiement s'appuie sur `scripts/deploy_prod.ps1`
+- sur un runner Linux, le deploiement s'appuie sur `scripts/deploy_prod.sh`
+
 ### Captures recommandées
 
 - liste des jobs du workflow `cd-prod`
