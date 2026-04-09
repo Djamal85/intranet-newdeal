@@ -140,9 +140,9 @@ jobs:
           CONTAINER_NAME: intranet-newdeal
           HOST_PORT: 80
           CONTAINER_PORT: 80
-        shell: powershell
+        shell: cmd
         run: |
-          ./scripts/deploy_prod.ps1 -ImageRef "${env:IMAGE_NAME}:prod"
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\deploy_prod.ps1 -ImageRef "%IMAGE_NAME%:prod"
 
   notify:
     if: always()
