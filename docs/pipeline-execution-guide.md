@@ -56,15 +56,15 @@ Ou via declenchement manuel depuis l'onglet `Actions` grace a `workflow_dispatch
 ### Etat actuel
 
 - `security_gate` est deja operationnel
-- `deploy_prod` est pret dans le workflow mais reste volontairement ignore
-- ce comportement est normal tant que `RUNNER_PROD_READY=false`
-- cette variable ne doit etre activee qu'apres validation de Docker sur la machine du runner
+- `deploy_prod` a deja ete execute avec succes sur le runner Windows
+- la variable `RUNNER_PROD_READY` est desormais activee
+- le seul point encore conditionnel est la notification email SMTP
 
 ### Notes d'exploitation
 
 - sur un runner Windows, le deploiement s'appuie sur `scripts/deploy_prod.ps1`
 - sur un runner Linux, le deploiement s'appuie sur `scripts/deploy_prod.sh`
-- si `RUNNER_PROD_READY` reste a `false`, le job `deploy_prod` sera ignore proprement au lieu de passer en echec
+- si `RUNNER_PROD_READY` est remis a `false`, le job `deploy_prod` sera ignore proprement
 
 ### Captures recommandees
 

@@ -51,6 +51,12 @@ wsl --version
 docker version
 ```
 
+Statut dans ce projet :
+
+- ce point a ete corrige
+- WSL moderne est installe
+- Docker Desktop repond correctement
+
 ## Le push Docker Hub echoue
 
 Symptome :

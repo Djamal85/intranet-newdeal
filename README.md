@@ -41,13 +41,13 @@ Les elements suivants sont deja en place :
 - runner self-hosted `runner_prod` configure et visible `online` dans GitHub
 - workflow `ci-dev` valide avec build, scans et push Docker Hub
 - workflow `cd-prod` valide avec `security_gate` operationnel
-- job `deploy_prod` pret pour Windows et Linux
+- job `deploy_prod` valide sur le runner Windows
+- deploiement de production execute avec succes via GitHub Actions
 
 Les points encore manuels sont :
 
 - l'envoi reel d'email, qui depend des secrets SMTP
-- le redemarrage complet de Docker Desktop sur la machine du runner
-- l'activation finale de `RUNNER_PROD_READY=true` quand Docker repondra correctement
+- l'ajout des secrets SMTP pour activer la notification email reelle
 
 ## Structure du depot
 
@@ -143,8 +143,8 @@ Comportement :
 Etat actuel :
 
 - `security_gate` est operationnel
-- `deploy_prod` reste volontairement ignore tant que `RUNNER_PROD_READY` reste a `false`
-- cette variable restera a `false` tant que `docker version` ne repondra pas correctement sur la machine du runner
+- `deploy_prod` est operationnel sur le runner Windows
+- la variable `RUNNER_PROD_READY` est maintenant activee
 
 ## Secrets GitHub a creer
 
@@ -165,7 +165,7 @@ Variable GitHub :
 
 | Variable | Usage |
 | --- | --- |
-| `RUNNER_PROD_READY` | Mettre `true` uniquement quand le runner `runner_prod` est en ligne et que Docker fonctionne dessus |
+| `RUNNER_PROD_READY` | Variable de garde du deploiement production. Elle est deja positionnee a `true` dans le depot |
 
 Exemple de destinataire :
 
@@ -219,8 +219,8 @@ Dans ce workspace local :
 - le depot GitHub a deja ete cree
 - l'invitation du collaborateur a deja ete lancee
 - l'envoi reel d'email depend encore des secrets SMTP
-- le runner `runner_prod` est en ligne mais Docker Desktop n'est pas encore valide
-- la finalisation du deploiement prod depend d'une intervention ulterieure sur WSL et Docker
+- le runner `runner_prod` est en ligne et le deploiement production a deja ete execute avec succes
+- la seule finalisation restante concerne la notification email SMTP
 
 Voir aussi :
 

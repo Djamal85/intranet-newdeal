@@ -13,40 +13,25 @@ Date de reference : `2026-04-09`
 - repo GitHub cree : `Djamal85/intranet-newdeal`
 - repo Docker Hub cree : `djallesjr04/intranet-newdeal`
 - runner self-hosted `runner_prod` en ligne
+- WSL moderne installe sur la machine Windows du runner
+- Docker Desktop valide sur la machine du runner
+- deploiement production execute avec succes
 - documentation principale et rapport `.docx` deja rediges
 
 ## Ce qui est pret mais pas encore active
 
 - envoi reel d'email dans GitHub Actions
-- deploiement production reel sur le runner Windows
 
-## Pourquoi le deploiement prod n'est pas encore lance
+## Etat du deploiement production
 
-Le job `deploy_prod` est volontairement garde en `skipped` car :
+- le job `deploy_prod` est maintenant valide
+- la variable `RUNNER_PROD_READY` est activee
+- le conteneur de production peut etre redeploye depuis la branche `prod`
 
-- le runner est en ligne
-- le workflow est pret
-- mais Docker Desktop n'est pas encore valide sur la machine du runner
+## Point technique reporte a plus tard
 
-Tant que ce point n'est pas regle, la variable GitHub `RUNNER_PROD_READY` doit rester a `false`.
-
-## Point technique a reprendre plus tard
-
-L'etape a finaliser plus tard concerne WSL moderne et Docker Desktop sur Windows.
-
-Reference documentee :
-
-- MSI moderne attendu : `wsl.2.6.3.0.x64.msi`
-- taille attendue : `247123968` octets
-- SHA256 attendu : `562c79aba6ce9b6e9170f069d31e3717f10d76dd8bfbee39b07eae0ca4a02ca0`
-
-Une fois cette etape terminee, il faudra :
-
-1. verifier `wsl --version`
-2. verifier `docker version`
-3. passer `RUNNER_PROD_READY` a `true`
-4. relancer le workflow `cd-prod`
+Le seul point reporte concerne la configuration SMTP pour l'envoi d'email automatique.
 
 ## Message de soutenance recommande
 
-Le projet est complet sur les volets code, CI, securite, Docker Hub, documentation et preparation du runner. La seule etape reportee est la validation finale du moteur Docker du runner Windows, afin de ne pas simuler un deploiement reel non observe.
+Le projet est complet sur les volets code, CI, CD, securite, Docker Hub, documentation et deploiement. La seule etape encore non activee est l'envoi automatique d'email, faute de secrets SMTP configures.
